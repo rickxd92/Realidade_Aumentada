@@ -31,6 +31,14 @@
         height: 100% !important;
         width: 100% !important;
       }
+
+      /* Garante que o canvas da A-Frame fique visível no topo */
+      canvas {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        z-index: 9999 !important;
+      }
     </style>
   </head>
   <body>
@@ -42,22 +50,19 @@
       vr-mode-ui="enabled: false"
       device-orientation-permission-ui="enabled: true"
     >
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <!--
+        Posiciona a câmera um pouco para trás (z positivo) para que os textos
+        posicionados em z negativo fiquem visíveis
+      -->
+      <a-camera position="0 0 1" look-controls="enabled: false"></a-camera>
 
       <!-- Container da "folha" que vai virar -->
       <a-entity
         mindar-image-target="targetIndex: 0"
         id="pagina-container"
-        position="0 0 0"
+        position="0 0 -1"
         rotation="0 0 0"
       >
-        <a-text
-          value="Alvo detectado!"
-          color="yellow"
-          position="0 0.9 0"
-          align="center"
-          scale="1 1 1"
-        ></a-text>
       </a-entity>
     </a-scene>
 
@@ -110,6 +115,7 @@
               el.setAttribute("color", "yellow");
               el.setAttribute("align", "center");
               // Posiciona os nomes em linha vertical com espaçamento
+              // Importante: mantém z=0 para texto dentro do container posicionado em z = -1
               el.setAttribute("position", `0 ${0.3 - i * 0.3} 0`);
               el.setAttribute("scale", "0.8 0.8 0.8");
               container.appendChild(el);
