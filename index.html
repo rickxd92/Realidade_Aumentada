@@ -2,15 +2,15 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <title>MindAR Demo</title>
+    <title>MindAR Demo - Lista com Virada de Página</title>
 
-    <!-- 1. MindAR core -->
+    <!-- MindAR core -->
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image.prod.js"></script>
 
-    <!-- 2. A-Frame -->
+    <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
 
-    <!-- 3. MindAR plugin para A-Frame -->
+    <!-- MindAR A-Frame plugin -->
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
@@ -21,6 +21,7 @@
         padding: 0;
         height: 100%;
         width: 100%;
+        background-color: black;
       }
 
       a-scene {
@@ -42,32 +43,114 @@
       device-orientation-permission-ui="enabled: true"
     >
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-      <a-entity mindar-image-target="targetIndex: 0">
-        
-        <!-- <a-text
+
+      <!-- Container da "folha" que vai virar -->
+      <a-entity
+        mindar-image-target="targetIndex: 0"
+        id="pagina-container"
+        position="0 0 0"
+        rotation="0 0 0"
+      >
+        <a-text
           value="Alvo detectado!"
           color="yellow"
-          position="0 0 0"
-        ></a-text> -->
+          position="0 0.9 0"
+          align="center"
+          scale="1 1 1"
+        ></a-text>
       </a-entity>
     </a-scene>
+
     <script>
-      // Carrega o JSON com os nomes
-      fetch('assets/nomes.json')
-        .then(res => res.json())
-        .then(nomes => {
-          const container = document.querySelector("#lista-nomes");
+      fetch("assets/nomes.json")
+        .then((res) => res.json())
+        .then((nomes) => {
+          const container = document.querySelector("#pagina-container");
+          const nomesPorPagina = 5; // ajuste o número de nomes por página
+          const totalPaginas = Math.ceil(nomes.length / nomesPorPagina);
 
-          nomes.forEach((nome, index) => {
-            const el = document.createElement("a-text");
-            el.setAttribute("value", nome);
-            el.setAttribute("color", "yellow");
-            el.setAttribute("align", "center");
-            el.setAttribute("position", `0 ${1 - index * 0.3} 0`);
-            el.setAttribute("scale", "0.8 0.8 0.8");
+          let paginaAtual = 0;
+          let texts = [];
 
-            container.appendChild(el);
-          });
+          // Função para digitar o texto letra a letra
+          function typeWriter(text, element, pos = 0, callback) {
+            if (pos <= text.length) {
+              element.setAttribute("value", text.substring(0, pos));
+              setTimeout(() => typeWriter(text, element, pos + 1, callback), 100);
+            } else {
+              if (callback) callback();
+            }
+          }
+
+          // Mostra a página com os nomes paginados
+          function mostrarPagina(pagina) {
+            // Limpa nomes antigos da página
+            texts.forEach((el) => container.removeChild(el));
+            texts = [];
+
+            const inicio = pagina * nomesPorPagina;
+            const fim = Math.min(inicio + nomesPorPagina, nomes.length);
+            const nomesPagina = nomes.slice(inicio, fim);
+
+            let i = 0;
+
+            function digitarProximoNome() {
+              if (i >= nomesPagina.length) {
+                // Acabou a página, vira a página após 1.5s
+                setTimeout(() => virarPagina(() => {
+                  paginaAtual = (paginaAtual + 1) % totalPaginas;
+                  mostrarPagina(paginaAtual);
+                }), 1500);
+                return;
+              }
+
+              const nome = nomesPagina[i];
+              const el = document.createElement("a-text");
+              el.setAttribute("value", "");
+              el.setAttribute("color", "yellow");
+              el.setAttribute("align", "center");
+              // Posiciona os nomes em linha vertical com espaçamento
+              el.setAttribute("position", `0 ${0.3 - i * 0.3} 0`);
+              el.setAttribute("scale", "0.8 0.8 0.8");
+              container.appendChild(el);
+              texts.push(el);
+
+              typeWriter(nome, el, 0, () => {
+                i++;
+                setTimeout(digitarProximoNome, 500);
+              });
+            }
+
+            digitarProximoNome();
+          }
+
+          // Anima a virada da página com rotação Y 0 => 180 graus e volta para 0
+          function virarPagina(callback) {
+            const duracao = 1000; // duração da animação em ms
+            let start = null;
+
+            function animar(time) {
+              if (!start) start = time;
+              let elapsed = time - start;
+              let progress = Math.min(elapsed / duracao, 1);
+              // Rotaciona no eixo Y de 0 a 180 graus (pi rad)
+              const rotY = 180 * progress;
+              container.setAttribute("rotation", `0 ${rotY} 0`);
+
+              if (progress < 1) {
+                requestAnimationFrame(animar);
+              } else {
+                // Reset rotation para 0 para próxima página
+                container.setAttribute("rotation", "0 0 0");
+                callback();
+              }
+            }
+
+            requestAnimationFrame(animar);
+          }
+
+          // Começa exibindo a primeira página
+          mostrarPagina(paginaAtual);
         });
     </script>
   </body>
