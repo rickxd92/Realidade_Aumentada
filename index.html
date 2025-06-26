@@ -1,163 +1,68 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <title>MindAR Demo - Lista com Virada de Página</title>
+<head>
+  <meta charset="UTF-8" />
+  <title>Teste MindAR Simples</title>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image.prod.js"></script>
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    html, body {
+      margin:0; padding:0; overflow:hidden; background:black;
+      height:100%; width:100%;
+    }
+    a-scene {
+      position:absolute; top:0; left:0; height:100% !important; width:100% !important;
+    }
+  </style>
+</head>
+<body>
+  <a-scene mindar-image="imageTargetSrc: assets/target.mind;" embedded vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:true">
+    <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
+    <a-entity mindar-image-target="targetIndex: 0" id="container" position="0 0 -0.5">
+    </a-entity>
+  </a-scene>
 
-    <!-- MindAR core -->
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image.prod.js"></script>
+  <script>
+    const nomes = [
+      "Leitor Alfa",
+      "Apoiadora Beta",
+      "Colaborador Gama",
+      "Supervisor Delta",
+      "Parceiro Épsilon"
+    ];
 
-    <!-- A-Frame -->
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    const container = document.querySelector("#container");
+    let i = 0;
 
-    <!-- MindAR A-Frame plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-aframe.prod.js"></script>
-
-    <style>
-      html,
-      body {
-        margin: 0;
-        overflow: hidden;
-        padding: 0;
-        height: 100%;
-        width: 100%;
-        background-color: black;
+    function typeWriter(text, element, pos = 0, callback) {
+      if (pos <= text.length) {
+        element.setAttribute("value", text.substring(0, pos));
+        setTimeout(() => typeWriter(text, element, pos + 1, callback), 100);
+      } else {
+        if (callback) callback();
       }
+    }
 
-      a-scene {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100% !important;
-        width: 100% !important;
-      }
+    function showNext() {
+      if(i >= nomes.length) return;
 
-      /* Garante que o canvas da A-Frame fique visível no topo */
-      canvas {
-        position: fixed !important;
-        top: 0;
-        left: 0;
-        z-index: 9999 !important;
-      }
-    </style>
-  </head>
-  <body>
-    <a-scene
-      mindar-image="imageTargetSrc: assets/target.mind;"
-      embedded
-      color-space="sRGB"
-      renderer="colorManagement: true, physicallyCorrectLights"
-      vr-mode-ui="enabled: false"
-      device-orientation-permission-ui="enabled: true"
-    >
-      <!--
-        Posiciona a câmera um pouco para trás (z positivo) para que os textos
-        posicionados em z negativo fiquem visíveis
-      -->
-      <a-camera position="0 0 1" look-controls="enabled: false"></a-camera>
+      const el = document.createElement("a-text");
+      el.setAttribute("value", "");
+      el.setAttribute("color", "yellow");
+      el.setAttribute("align", "center");
+      el.setAttribute("position", `0 ${0.3 - i*0.3} 0`);
+      el.setAttribute("scale", "0.8 0.8 0.8");
 
-      <!-- Container da "folha" que vai virar -->
-      <a-entity
-        mindar-image-target="targetIndex: 0"
-        id="pagina-container"
-        position="0 0 -1"
-        rotation="0 0 0"
-      >
-      </a-entity>
-    </a-scene>
+      container.appendChild(el);
 
-    <script>
-      fetch("assets/nomes.json")
-        .then((res) => res.json())
-        .then((nomes) => {
-          const container = document.querySelector("#pagina-container");
-          const nomesPorPagina = 5; // ajuste o número de nomes por página
-          const totalPaginas = Math.ceil(nomes.length / nomesPorPagina);
+      typeWriter(nomes[i], el, 0, () => {
+        i++;
+        setTimeout(showNext, 500);
+      });
+    }
 
-          let paginaAtual = 0;
-          let texts = [];
-
-          // Função para digitar o texto letra a letra
-          function typeWriter(text, element, pos = 0, callback) {
-            if (pos <= text.length) {
-              element.setAttribute("value", text.substring(0, pos));
-              setTimeout(() => typeWriter(text, element, pos + 1, callback), 100);
-            } else {
-              if (callback) callback();
-            }
-          }
-
-          // Mostra a página com os nomes paginados
-          function mostrarPagina(pagina) {
-            // Limpa nomes antigos da página
-            texts.forEach((el) => container.removeChild(el));
-            texts = [];
-
-            const inicio = pagina * nomesPorPagina;
-            const fim = Math.min(inicio + nomesPorPagina, nomes.length);
-            const nomesPagina = nomes.slice(inicio, fim);
-
-            let i = 0;
-
-            function digitarProximoNome() {
-              if (i >= nomesPagina.length) {
-                // Acabou a página, vira a página após 1.5s
-                setTimeout(() => virarPagina(() => {
-                  paginaAtual = (paginaAtual + 1) % totalPaginas;
-                  mostrarPagina(paginaAtual);
-                }), 1500);
-                return;
-              }
-
-              const nome = nomesPagina[i];
-              const el = document.createElement("a-text");
-              el.setAttribute("value", "");
-              el.setAttribute("color", "yellow");
-              el.setAttribute("align", "center");
-              // Posiciona os nomes em linha vertical com espaçamento
-              // Importante: mantém z=0 para texto dentro do container posicionado em z = -1
-              el.setAttribute("position", `0 ${0.3 - i * 0.3} 0`);
-              el.setAttribute("scale", "0.8 0.8 0.8");
-              container.appendChild(el);
-              texts.push(el);
-
-              typeWriter(nome, el, 0, () => {
-                i++;
-                setTimeout(digitarProximoNome, 500);
-              });
-            }
-
-            digitarProximoNome();
-          }
-
-          // Anima a virada da página com rotação Y 0 => 180 graus e volta para 0
-          function virarPagina(callback) {
-            const duracao = 1000; // duração da animação em ms
-            let start = null;
-
-            function animar(time) {
-              if (!start) start = time;
-              let elapsed = time - start;
-              let progress = Math.min(elapsed / duracao, 1);
-              // Rotaciona no eixo Y de 0 a 180 graus (pi rad)
-              const rotY = 180 * progress;
-              container.setAttribute("rotation", `0 ${rotY} 0`);
-
-              if (progress < 1) {
-                requestAnimationFrame(animar);
-              } else {
-                // Reset rotation para 0 para próxima página
-                container.setAttribute("rotation", "0 0 0");
-                callback();
-              }
-            }
-
-            requestAnimationFrame(animar);
-          }
-
-          // Começa exibindo a primeira página
-          mostrarPagina(paginaAtual);
-        });
-    </script>
-  </body>
+    showNext();
+  </script>
+</body>
 </html>
