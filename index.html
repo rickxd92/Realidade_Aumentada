@@ -2,7 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <title>MindAR Demo com Lista Animada</title>
+    <title>MindAR Demo - Lista com Virada de Página</title>
 
     <!-- MindAR core -->
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image.prod.js"></script>
@@ -44,7 +44,13 @@
     >
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0" id="lista-nomes-container" position="0 0 0">
+      <!-- Container da "folha" que vai virar -->
+      <a-entity
+        mindar-image-target="targetIndex: 0"
+        id="pagina-container"
+        position="0 0 0"
+        rotation="0 0 0"
+      >
         <a-text
           value="Alvo detectado!"
           color="yellow"
@@ -59,53 +65,92 @@
       fetch("assets/nomes.json")
         .then((res) => res.json())
         .then((nomes) => {
-          const container = document.querySelector("#lista-nomes-container");
-          const texts = [];
+          const container = document.querySelector("#pagina-container");
+          const nomesPorPagina = 5; // ajuste o número de nomes por página
+          const totalPaginas = Math.ceil(nomes.length / nomesPorPagina);
 
-          let index = 0;
+          let paginaAtual = 0;
+          let texts = [];
 
-          function typeWriter(text, element, i = 0) {
-            if (i <= text.length) {
-              element.setAttribute("value", text.substring(0, i));
-              setTimeout(() => typeWriter(text, element, i + 1), 100);
+          // Função para digitar o texto letra a letra
+          function typeWriter(text, element, pos = 0, callback) {
+            if (pos <= text.length) {
+              element.setAttribute("value", text.substring(0, pos));
+              setTimeout(() => typeWriter(text, element, pos + 1, callback), 100);
             } else {
-              // Aguarda um tempo e mostra o próximo nome
-              setTimeout(showNextName, 1000);
+              if (callback) callback();
             }
           }
 
-          function showNextName() {
-            if (index >= nomes.length) return;
+          // Mostra a página com os nomes paginados
+          function mostrarPagina(pagina) {
+            // Limpa nomes antigos da página
+            texts.forEach((el) => container.removeChild(el));
+            texts = [];
 
-            // Move todos os textos existentes para cima
-            texts.forEach((el) => {
-              const pos = el.getAttribute("position");
-              const newY = pos.y + 0.3;
-              el.setAttribute("position", `0 ${newY} 0`);
-            });
+            const inicio = pagina * nomesPorPagina;
+            const fim = Math.min(inicio + nomesPorPagina, nomes.length);
+            const nomesPagina = nomes.slice(inicio, fim);
 
-            // Remove textos que subiram demais (ex: y > 1.5)
-            while (texts.length > 0 && texts[0].getAttribute("position").y > 1.5) {
-              const oldEl = texts.shift();
-              container.removeChild(oldEl);
+            let i = 0;
+
+            function digitarProximoNome() {
+              if (i >= nomesPagina.length) {
+                // Acabou a página, vira a página após 1.5s
+                setTimeout(() => virarPagina(() => {
+                  paginaAtual = (paginaAtual + 1) % totalPaginas;
+                  mostrarPagina(paginaAtual);
+                }), 1500);
+                return;
+              }
+
+              const nome = nomesPagina[i];
+              const el = document.createElement("a-text");
+              el.setAttribute("value", "");
+              el.setAttribute("color", "yellow");
+              el.setAttribute("align", "center");
+              // Posiciona os nomes em linha vertical com espaçamento
+              el.setAttribute("position", `0 ${0.3 - i * 0.3} 0`);
+              el.setAttribute("scale", "0.8 0.8 0.8");
+              container.appendChild(el);
+              texts.push(el);
+
+              typeWriter(nome, el, 0, () => {
+                i++;
+                setTimeout(digitarProximoNome, 500);
+              });
             }
 
-            // Cria novo texto na posição inicial (embaixo)
-            const nome = nomes[index];
-            const el = document.createElement("a-text");
-            el.setAttribute("value", "");
-            el.setAttribute("color", "yellow");
-            el.setAttribute("align", "center");
-            el.setAttribute("position", `0 0 0`);
-            el.setAttribute("scale", "0.8 0.8 0.8");
-            container.appendChild(el);
-            texts.push(el);
-
-            typeWriter(nome, el);
-            index++;
+            digitarProximoNome();
           }
 
-          showNextName();
+          // Anima a virada da página com rotação Y 0 => 180 graus e volta para 0
+          function virarPagina(callback) {
+            const duracao = 1000; // duração da animação em ms
+            let start = null;
+
+            function animar(time) {
+              if (!start) start = time;
+              let elapsed = time - start;
+              let progress = Math.min(elapsed / duracao, 1);
+              // Rotaciona no eixo Y de 0 a 180 graus (pi rad)
+              const rotY = 180 * progress;
+              container.setAttribute("rotation", `0 ${rotY} 0`);
+
+              if (progress < 1) {
+                requestAnimationFrame(animar);
+              } else {
+                // Reset rotation para 0 para próxima página
+                container.setAttribute("rotation", "0 0 0");
+                callback();
+              }
+            }
+
+            requestAnimationFrame(animar);
+          }
+
+          // Começa exibindo a primeira página
+          mostrarPagina(paginaAtual);
         });
     </script>
   </body>
