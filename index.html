@@ -14,8 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-      html,
-      body {
+      html, body {
         margin: 0;
         overflow: hidden;
         padding: 0;
@@ -42,19 +41,21 @@
       vr-mode-ui="enabled: false"
       device-orientation-permission-ui="enabled: true"
     >
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <!-- A câmera agora está levemente para trás -->
+      <a-camera position="0 0 1" look-controls="enabled: false"></a-camera>
 
-      <!-- Container da "folha" que vai virar -->
+      <!-- O container está um pouco na frente da câmera -->
       <a-entity
         mindar-image-target="targetIndex: 0"
         id="pagina-container"
-        position="0 0 0"
+        position="0 0 -1"
         rotation="0 0 0"
       >
+        <!-- Título fixo -->
         <a-text
-          value="Alvo detectado!"
+          value="Apoiadores"
           color="yellow"
-          position="0 0.9 0"
+          position="0 1 0"
           align="center"
           scale="1 1 1"
         ></a-text>
@@ -62,96 +63,89 @@
     </a-scene>
 
     <script>
-      fetch("assets/nomes.json")
-        .then((res) => res.json())
-        .then((nomes) => {
-          const container = document.querySelector("#pagina-container");
-          const nomesPorPagina = 5; // ajuste o número de nomes por página
-          const totalPaginas = Math.ceil(nomes.length / nomesPorPagina);
+      // Simulando o conteúdo do nomes.json
+      const nomes = Array.from({ length: 50 }, (_, i) => `Apoiador #${i + 1}`);
 
-          let paginaAtual = 0;
-          let texts = [];
+      const container = document.querySelector("#pagina-container");
+      const nomesPorPagina = 7;
+      const totalPaginas = Math.ceil(nomes.length / nomesPorPagina);
 
-          // Função para digitar o texto letra a letra
-          function typeWriter(text, element, pos = 0, callback) {
-            if (pos <= text.length) {
-              element.setAttribute("value", text.substring(0, pos));
-              setTimeout(() => typeWriter(text, element, pos + 1, callback), 100);
-            } else {
-              if (callback) callback();
-            }
+      let paginaAtual = 0;
+      let texts = [];
+
+      function typeWriter(text, element, pos = 0, callback) {
+        if (pos <= text.length) {
+          element.setAttribute("value", text.substring(0, pos));
+          setTimeout(() => typeWriter(text, element, pos + 1, callback), 50);
+        } else {
+          if (callback) callback();
+        }
+      }
+
+      function mostrarPagina(pagina) {
+        // Remove textos antigos
+        texts.forEach((el) => container.removeChild(el));
+        texts = [];
+
+        const inicio = pagina * nomesPorPagina;
+        const fim = Math.min(inicio + nomesPorPagina, nomes.length);
+        const nomesPagina = nomes.slice(inicio, fim);
+
+        let i = 0;
+
+        function digitarProximoNome() {
+          if (i >= nomesPagina.length) {
+            setTimeout(() => virarPagina(() => {
+              paginaAtual = (paginaAtual + 1) % totalPaginas;
+              mostrarPagina(paginaAtual);
+            }), 1500);
+            return;
           }
 
-          // Mostra a página com os nomes paginados
-          function mostrarPagina(pagina) {
-            // Limpa nomes antigos da página
-            texts.forEach((el) => container.removeChild(el));
-            texts = [];
+          const nome = nomesPagina[i];
+          const el = document.createElement("a-text");
+          el.setAttribute("value", "");
+          el.setAttribute("color", "yellow");
+          el.setAttribute("align", "center");
+          el.setAttribute("side", "double"); // visível frente e verso
+          el.setAttribute("position", `0 ${0.5 - i * 0.3} 0`);
+          el.setAttribute("scale", "0.8 0.8 0.8");
+          container.appendChild(el);
+          texts.push(el);
 
-            const inicio = pagina * nomesPorPagina;
-            const fim = Math.min(inicio + nomesPorPagina, nomes.length);
-            const nomesPagina = nomes.slice(inicio, fim);
+          typeWriter(nome, el, 0, () => {
+            i++;
+            setTimeout(digitarProximoNome, 300);
+          });
+        }
 
-            let i = 0;
+        digitarProximoNome();
+      }
 
-            function digitarProximoNome() {
-              if (i >= nomesPagina.length) {
-                // Acabou a página, vira a página após 1.5s
-                setTimeout(() => virarPagina(() => {
-                  paginaAtual = (paginaAtual + 1) % totalPaginas;
-                  mostrarPagina(paginaAtual);
-                }), 1500);
-                return;
-              }
+      function virarPagina(callback) {
+        const duracao = 800;
+        let start = null;
 
-              const nome = nomesPagina[i];
-              const el = document.createElement("a-text");
-              el.setAttribute("value", "");
-              el.setAttribute("color", "yellow");
-              el.setAttribute("align", "center");
-              // Posiciona os nomes em linha vertical com espaçamento
-              el.setAttribute("position", `0 ${0.3 - i * 0.3} 0`);
-              el.setAttribute("scale", "0.8 0.8 0.8");
-              container.appendChild(el);
-              texts.push(el);
+        function animar(time) {
+          if (!start) start = time;
+          let elapsed = time - start;
+          let progress = Math.min(elapsed / duracao, 1);
+          const rotY = 180 * progress;
+          container.setAttribute("rotation", `0 ${rotY} 0`);
 
-              typeWriter(nome, el, 0, () => {
-                i++;
-                setTimeout(digitarProximoNome, 500);
-              });
-            }
-
-            digitarProximoNome();
-          }
-
-          // Anima a virada da página com rotação Y 0 => 180 graus e volta para 0
-          function virarPagina(callback) {
-            const duracao = 1000; // duração da animação em ms
-            let start = null;
-
-            function animar(time) {
-              if (!start) start = time;
-              let elapsed = time - start;
-              let progress = Math.min(elapsed / duracao, 1);
-              // Rotaciona no eixo Y de 0 a 180 graus (pi rad)
-              const rotY = 180 * progress;
-              container.setAttribute("rotation", `0 ${rotY} 0`);
-
-              if (progress < 1) {
-                requestAnimationFrame(animar);
-              } else {
-                // Reset rotation para 0 para próxima página
-                container.setAttribute("rotation", "0 0 0");
-                callback();
-              }
-            }
-
+          if (progress < 1) {
             requestAnimationFrame(animar);
+          } else {
+            container.setAttribute("rotation", "0 0 0");
+            callback();
           }
+        }
 
-          // Começa exibindo a primeira página
-          mostrarPagina(paginaAtual);
-        });
+        requestAnimationFrame(animar);
+      }
+
+      // Inicia a primeira página
+      mostrarPagina(paginaAtual);
     </script>
   </body>
 </html>
