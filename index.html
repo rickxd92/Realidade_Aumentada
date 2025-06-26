@@ -50,5 +50,24 @@
         ></a-text>
       </a-entity>
     </a-scene>
+    <script>
+      // Carrega o JSON com os nomes
+      fetch('assets/nomes.json')
+        .then(res => res.json())
+        .then(nomes => {
+          const container = document.querySelector("#lista-nomes");
+
+          nomes.forEach((nome, index) => {
+            const el = document.createElement("a-text");
+            el.setAttribute("value", nome);
+            el.setAttribute("color", "yellow");
+            el.setAttribute("align", "center");
+            el.setAttribute("position", `0 ${1 - index * 0.3} 0`);
+            el.setAttribute("scale", "0.8 0.8 0.8");
+
+            container.appendChild(el);
+          });
+        });
+    </script>
   </body>
 </html>
