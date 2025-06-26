@@ -42,30 +42,44 @@
       device-orientation-permission-ui="enabled: true"
     >
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-      <a-entity mindar-image-target="targetIndex: 0">
-        <a-text
+      <a-entity mindar-image-target="targetIndex: 0" id="lista-nomes-container" position="0 0 0">
+        <!-- <a-text
           value="Alvo detectado!"
           color="yellow"
           position="0 0 0"
-        ></a-text>
+        ></a-text> -->
       </a-entity>
     </a-scene>
     <script>
       // Carrega o JSON com os nomes
-      fetch('assets/nomes.json')
-        .then(res => res.json())
-        .then(nomes => {
-          const container = document.querySelector("#lista-nomes");
+      fetch("assets/nomes.json")
+        .then((res) => res.json())
+        .then((nomes) => {
+          const container = document.querySelector("#lista-nomes-container");
 
           nomes.forEach((nome, index) => {
+            // Criar o <a-text> com texto vazio inicialmente
             const el = document.createElement("a-text");
-            el.setAttribute("value", nome);
+            el.setAttribute("value", "");
             el.setAttribute("color", "yellow");
             el.setAttribute("align", "center");
-            el.setAttribute("position", `0 ${1 - index * 0.3} 0`);
+            el.setAttribute("position", `0 ${0.3 - index * 0.3} 0`);
             el.setAttribute("scale", "0.8 0.8 0.8");
 
             container.appendChild(el);
+
+            // Função para animar o texto letra a letra
+            function typeWriter(text, element, i = 0) {
+              if (i <= text.length) {
+                element.setAttribute("value", text.substring(0, i));
+                setTimeout(() => typeWriter(text, element, i + 1), 100);
+              }
+            }
+
+            // Iniciar a animação para cada nome com atraso para não sobrepor as animações
+            setTimeout(() => {
+              typeWriter(nome, el);
+            }, index * 1500); // cada nome inicia após 1.5 segundos do anterior
           });
         });
     </script>
