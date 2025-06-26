@@ -14,14 +14,40 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-      body { margin: 0; overflow: hidden; }
+      html,
+      body {
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+      }
+
+      a-scene {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100% !important;
+        width: 100% !important;
+      }
     </style>
   </head>
   <body>
-    <a-scene mindar-image="imageTargetSrc: assets/target.mind;" embedded>
+    <a-scene
+      mindar-image="imageTargetSrc: assets/target.mind;"
+      embedded
+      color-space="sRGB"
+      renderer="colorManagement: true, physicallyCorrectLights"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: true"
+    >
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
       <a-entity mindar-image-target="targetIndex: 0">
-        <a-text value="Alvo detectado!" color="yellow" position="0 0 0"></a-text>
+        <a-text
+          value="Alvo detectado!"
+          color="yellow"
+          position="0 0 0"
+        ></a-text>
       </a-entity>
     </a-scene>
   </body>
